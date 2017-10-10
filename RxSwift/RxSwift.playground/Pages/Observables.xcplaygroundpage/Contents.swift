@@ -111,9 +111,77 @@ example(of: "create") {
         print("disposed")
     }).disposed(by: disposeBag)
     
+    enum MyError: Error {
+        case anError
+    }
+    
+    print("------------------------")
+    let observableError = Observable<String>.create({ observer in
+        print("Emitting...")
+        observer.onNext("kimi")
+        observer.onError(MyError.anError)
+        return Disposables.create()
+    })
+    
+    observableError.subscribe(onNext: {
+        print($0)
+    }, onError: {
+        print($0)
+    }).disposed(by: disposeBag)
 }
 
+example(of: "range") {
+    let disposeBag = DisposeBag()
+    
+    Observable.range(start: 1, count: 10)
+        .subscribe { print($0) }
+        .disposed(by: disposeBag)
+}
 
+example(of: "repeatElement") {
+    let disposeBag = DisposeBag()
+    Observable.repeatElement("🍎")
+        .take(4)
+        .subscribe({ print($0) })
+        .disposed(by: disposeBag)
+}
 
+example(of: "generate") {
+    let disposeBag = DisposeBag()
+    
+    Observable.generate(
+        initialState: 0,
+        condition: { $0 < 3 },
+        iterate: { $0 + 1 }
+        )
+        .subscribe(onNext: { print($0) })
+        .disposed(by: disposeBag)
+}
 
-
+/// do not create the Observable until the observer subscribes,
+/// and create a fresh Observable for each observer
+example(of: "deferred") {
+    let disposeBag = DisposeBag()
+    var count = 1
+    
+    let deferredSequence = Observable<String>.deferred {
+        print("Creating \(count)")
+        count += 1
+        
+        return Observable.create { observer in
+            print("Emitting...")
+            observer.onNext("🐶")
+            observer.onNext("🐱")
+            observer.onNext("🐵")
+            return Disposables.create()
+        }
+    }
+    
+    deferredSequence
+        .subscribe(onNext: { print($0) })
+        .disposed(by: disposeBag)
+    
+    deferredSequence
+        .subscribe(onNext: { print($0) })
+        .disposed(by: disposeBag)
+}
